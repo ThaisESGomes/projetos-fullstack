@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import current_app, Blueprint, request, jsonify
 from src.models.user import db, User
 from src.models.product import Product, ProductReview, CartItem, Order, OrderItem
 from functools import wraps
@@ -16,11 +16,11 @@ def token_required(f):
         try:
             if token.startswith('Bearer '):
                 token = token[7:]
-            user_id = User.verify_token(token, 'asdf#FGSgvasgf$5$WGT')
+            user_id = User.verify_token(token, current_app.config['SECRET_KEY'])
             if user_id is None:
                 return jsonify({'message': 'Token is invalid'}), 401
             current_user = User.query.get(user_id)
-            if not current_user:
+            if not current_user or not current_user.is_active:
                 return jsonify({'message': 'User not found'}), 401
         except Exception as e:
             return jsonify({'message': 'Token is invalid'}), 401
@@ -124,6 +124,8 @@ def add_to_cart(current_user):
         data = request.get_json()
         product_id = data.get('product_id')
         quantity = data.get('quantity', 1)
+        if type(quantity) is not int or quantity < 1:
+            return jsonify({'message': 'Positive integer quantity required'}), 400
         
         if not product_id:
             return jsonify({'message': 'Product ID is required'}), 400
@@ -167,7 +169,7 @@ def update_cart_item(current_user, item_id):
         data = request.get_json()
         quantity = data.get('quantity')
         
-        if quantity is None or quantity < 1:
+        if type(quantity) is not int or quantity < 1:
             return jsonify({'message': 'Valid quantity is required'}), 400
         
         cart_item = CartItem.query.filter_by(

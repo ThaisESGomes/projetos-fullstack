@@ -10,18 +10,21 @@ from src.routes.user import user_bp
 from src.routes.products import products_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+if not app.config['SECRET_KEY'] or len(app.config['SECRET_KEY']) < 32:
+    raise RuntimeError('Configure SECRET_KEY com pelo menos 32 caracteres')
 
 # Configurar CORS
-CORS(app, origins=['*'])
+CORS(app, origins=os.environ.get('CORS_ORIGINS', 'http://localhost:5173').split(','))
 
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(products_bp, url_prefix='/api')
 
 # uncomment if you need to use database
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+os.makedirs(os.path.join(os.path.dirname(__file__), 'database'), exist_ok=True)
 with app.app_context():
     db.create_all()
 
@@ -43,4 +46,4 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='127.0.0.1', port=5000, debug=os.environ.get('FLASK_DEBUG') == '1')

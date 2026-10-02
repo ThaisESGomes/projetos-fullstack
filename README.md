@@ -1,187 +1,63 @@
 # Projetos Fullstack
 
-Este repositório contém três projetos fullstack elaborados, cada um demonstrando diferentes tecnologias e funcionalidades:
+Laboratórios de desenvolvimento web em diferentes estágios. O objetivo é estudar APIs, interfaces, persistência e controles de acesso.
 
-## 🛒 TechShop - E-commerce de Tecnologia
+| Projeto | Implementado no repositório | Próximos passos |
+|---|---|---|
+| [TechShop](techshop-ecommerce) | API Flask para usuários, catálogo, avaliações, carrinho e pedidos simulados; código de frontend React/Vite | Validar interface completa, ampliar testes e revisar regras de negócio |
+| [DevConnect](devconnect-social) | API Flask de cadastro, consulta, alteração e exclusão de usuários | Autenticação individual, posts, feed e frontend próprio |
+| [TaskFlow](taskflow-productivity) | API Flask de usuários | Modelos e rotas de tarefas, projetos, colaboração e frontend próprio |
 
-Uma plataforma completa de e-commerce especializada em produtos de tecnologia.
+DevConnect e TaskFlow são protótipos de API; seus nomes representam o domínio planejado. Não possuem os frontends React descritos em versões anteriores deste README.
 
-### Funcionalidades
-- **Autenticação completa**: Registro, login, logout com JWT
-- **Catálogo de produtos**: Listagem com filtros por categoria, preço e busca
-- **Carrinho de compras**: Adicionar/remover produtos, atualizar quantidades
-- **Sistema de avaliações**: Usuários podem avaliar produtos (1-5 estrelas)
-- **Processo de checkout**: Simulação completa de compra
-- **Painel administrativo**: Gerenciamento de produtos e pedidos
+## Executar um backend
 
-### Tecnologias
-- **Backend**: Python Flask, SQLAlchemy, JWT, Flask-CORS
-- **Frontend**: React 18, Tailwind CSS, shadcn/ui, React Router
-- **Banco de dados**: SQLite
-- **Autenticação**: JWT (JSON Web Tokens)
+Requer Python 3.11+. Exemplo para TechShop, partindo da raiz:
 
-### Como executar
 ```bash
-# Backend
-cd techshop-ecommerce/techshop-backend
-source venv/bin/activate
+git clone https://github.com/ThaisESGomes/projetos-fullstack.git
+cd projetos-fullstack/techshop-ecommerce/techshop-backend
+python -m venv .venv
+source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 python src/main.py
+```
 
-# Frontend
+No PowerShell, configure a variável com `$env:SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"`.
+
+A API local usa `http://127.0.0.1:5000/api`. O banco SQLite é criado quando necessário. `DATABASE_URL` permite usar um banco descartável, por exemplo `sqlite:///:memory:` para testes. Não use os bancos versionados com dados reais.
+
+Para DevConnect ou TaskFlow, entre na pasta correspondente do backend e repita a instalação. Configure também `ADMIN_API_TOKEN` com pelo menos 32 caracteres e envie `Authorization: Bearer <token>` nas chamadas `/api/`. Esse token compartilhado protege o laboratório; autenticação individual ainda precisa ser implementada.
+
+## Frontend TechShop
+
+```bash
 cd techshop-ecommerce/techshop-frontend
 pnpm install
 pnpm run dev
 ```
 
----
+Execute a partir da raiz do repositório em outro terminal. O backend permite por padrão a origem `http://localhost:5173`; ajuste `CORS_ORIGINS` para a origem usada. Ainda é necessário validar todos os fluxos da interface.
 
-## 🌐 DevConnect - Rede Social para Desenvolvedores
+## Controles e limites de segurança
 
-Uma rede social simplificada focada na comunidade de desenvolvedores.
+- Chave de assinatura configurada pelo ambiente, sem chave fixa no código.
+- Rotas de administração de usuários no TechShop exigem JWT válido e perfil administrador.
+- Contas desativadas não acessam rotas protegidas.
+- Criação administrativa de usuário exige senha explícita.
+- Quantidades de carrinho devem ser inteiros positivos.
+- Debug desligado por padrão e servidor local em `127.0.0.1`.
 
-### Funcionalidades
-- **Perfis personalizados**: Informações profissionais, habilidades, links
-- **Publicações**: Posts de texto e blocos de código com syntax highlighting
-- **Interações sociais**: Curtir, comentar, seguir outros usuários
-- **Feed personalizado**: Visualização de posts de usuários seguidos
-- **Sistema de tags**: Organização de conteúdo por tecnologias
+Não há garantia de uso em produção: faltam rate limiting, revisão completa de validações, tratamento uniforme de erros, auditoria de dependências e testes completos da interface. Pedidos são simulações sem processamento real de pagamento.
 
-### Tecnologias
-- **Backend**: Python Flask, SQLAlchemy
-- **Frontend**: React, Context API para estado global
-- **Banco de dados**: SQLite
-- **Autenticação**: JWT
+## Testes
 
-### Como executar
+Na pasta de cada backend:
+
 ```bash
-# Backend
-cd devconnect-social/devconnect-backend
-source venv/bin/activate
-python src/main.py
-
-# Frontend
-cd devconnect-social/devconnect-frontend
-pnpm install
-pnpm run dev
+python -m unittest discover -s tests -v
 ```
 
----
-
-## ✅ TaskFlow - Gerenciador de Produtividade
-
-Uma aplicação completa para gerenciamento de tarefas e projetos.
-
-### Funcionalidades
-- **Gerenciamento de tarefas**: Criar, editar, excluir, marcar como concluída
-- **Organização avançada**: Categorias, tags, prioridades, datas de vencimento
-- **Colaboração**: Compartilhar listas de tarefas com outros usuários
-- **Notificações**: Lembretes de tarefas próximas ao vencimento
-- **Dashboard**: Visão geral do progresso e estatísticas
-- **Filtros inteligentes**: Por status, prioridade, data, categoria
-
-### Tecnologias
-- **Backend**: Python Flask, SQLAlchemy
-- **Frontend**: React, Material-UI inspired design
-- **Banco de dados**: SQLite
-- **Notificações**: Sistema de lembretes integrado
-
-### Como executar
-```bash
-# Backend
-cd taskflow-productivity/taskflow-backend
-source venv/bin/activate
-python src/main.py
-
-# Frontend
-cd taskflow-productivity/taskflow-frontend
-pnpm install
-pnpm run dev
-```
-
----
-
-## 🚀 Características Gerais dos Projetos
-
-### Arquitetura
-- **Separação clara**: Frontend e backend independentes
-- **API RESTful**: Comunicação via JSON
-- **CORS configurado**: Permite integração frontend-backend
-- **Autenticação segura**: JWT com expiração
-- **Validação de dados**: Tanto no frontend quanto no backend
-
-### Qualidade do Código
-- **Estrutura organizada**: Separação de responsabilidades
-- **Tratamento de erros**: Feedback adequado ao usuário
-- **Responsividade**: Interfaces adaptáveis a diferentes dispositivos
-- **Componentes reutilizáveis**: Código modular e maintível
-
-### Segurança
-- **Senhas criptografadas**: Hash seguro com Werkzeug
-- **Tokens JWT**: Autenticação stateless
-- **Validação de entrada**: Prevenção de ataques básicos
-- **CORS configurado**: Controle de acesso de origem
-
----
-
-## 📋 Requisitos do Sistema
-
-### Backend
-- Python 3.8+
-- Flask 3.0+
-- SQLAlchemy
-- Werkzeug (para hash de senhas)
-- PyJWT (para autenticação)
-- Flask-CORS
-
-### Frontend
-- Node.js 18+
-- React 18+
-- Vite (bundler)
-- Tailwind CSS
-- shadcn/ui components
-- React Router DOM
-
----
-
-## 🛠️ Instalação Geral
-
-1. **Clone o repositório**
-```bash
-git clone https://github.com/ThaisESGomes/projetos-fullstack.git
-cd projetos-fullstack
-```
-
-2. **Escolha um projeto e siga as instruções específicas acima**
-
-3. **Configuração do ambiente**
-   - Certifique-se de ter Python 3.8+ e Node.js 18+ instalados
-   - Cada projeto tem seu próprio ambiente virtual Python
-   - Os frontends usam pnpm como gerenciador de pacotes
-
----
-
-## 📝 Notas de Desenvolvimento
-
-- **Banco de dados**: Todos os projetos usam SQLite para simplicidade, mas podem ser facilmente migrados para PostgreSQL ou MySQL
-- **Deploy**: Os projetos estão preparados para deploy em plataformas como Heroku, Vercel, ou servidores VPS
-- **Escalabilidade**: A arquitetura permite fácil escalabilidade horizontal
-- **Manutenibilidade**: Código bem documentado e estruturado para facilitar manutenção
-
----
-
-## 🎯 Objetivos dos Projetos
-
-Estes projetos foram desenvolvidos para demonstrar:
-
-1. **Competência fullstack**: Domínio tanto de frontend quanto backend
-2. **Diferentes domínios**: E-commerce, redes sociais, produtividade
-3. **Tecnologias modernas**: React, Flask, JWT, Tailwind CSS
-4. **Boas práticas**: Arquitetura limpa, segurança, UX/UI
-5. **Funcionalidades completas**: Desde autenticação até features avançadas
-
-Cada projeto é funcional e pode ser usado como base para aplicações reais em produção.
-
----
-
-**Desenvolvido por Thaís Gomes** | [GitHub](https://github.com/ThaisESGomes)
-
+Consulte também [o estudo de caso](docs/security-improvements.md) sobre as correções e suas limitações.

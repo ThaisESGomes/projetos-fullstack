@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import current_app, Blueprint, request, jsonify
 from src.models.user import db, User
 from src.models.product import Product, ProductReview
 from functools import wraps
@@ -16,11 +16,11 @@ def token_required(f):
         try:
             if token.startswith('Bearer '):
                 token = token[7:]
-            user_id = User.verify_token(token, 'asdf#FGSgvasgf$5$WGT')
+            user_id = User.verify_token(token, current_app.config['SECRET_KEY'])
             if user_id is None:
                 return jsonify({'message': 'Token is invalid'}), 401
             current_user = User.query.get(user_id)
-            if not current_user:
+            if not current_user or not current_user.is_active:
                 return jsonify({'message': 'User not found'}), 401
         except Exception as e:
             return jsonify({'message': 'Token is invalid'}), 401
@@ -28,10 +28,21 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(current_user, *args, **kwargs):
+        if not current_user.is_admin:
+            return jsonify({'message': 'Admin access required'}), 403
+        return f(current_user, *args, **kwargs)
+    return decorated
+
 @user_bp.route('/register', methods=['POST'])
 def register():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'message': 'JSON object required'}), 400
         
         # Validar campos obrigatórios
         required_fields = ['name', 'username', 'email', 'password']
@@ -60,7 +71,7 @@ def register():
         db.session.commit()
         
         # Gerar token
-        token = user.generate_token('asdf#FGSgvasgf$5$WGT')
+        token = user.generate_token(current_app.config['SECRET_KEY'])
         
         return jsonify({
             'message': 'User registered successfully',
@@ -75,7 +86,9 @@ def register():
 @user_bp.route('/login', methods=['POST'])
 def login():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'message': 'JSON object required'}), 400
         
         if not data.get('username') or not data.get('password'):
             return jsonify({'message': 'Username and password are required'}), 400
@@ -92,7 +105,7 @@ def login():
             return jsonify({'message': 'Account is deactivated'}), 401
         
         # Gerar token
-        token = user.generate_token('asdf#FGSgvasgf$5$WGT')
+        token = user.generate_token(current_app.config['SECRET_KEY'])
         
         return jsonify({
             'message': 'Login successful',
@@ -118,7 +131,9 @@ def get_profile(current_user):
 @token_required
 def update_profile(current_user):
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'message': 'JSON object required'}), 400
         
         # Campos que podem ser atualizados
         updatable_fields = ['name', 'email', 'phone', 'address']
@@ -152,7 +167,9 @@ def update_profile(current_user):
 @token_required
 def create_review(current_user):
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'message': 'JSON object required'}), 400
         
         product_id = data.get('product_id')
         rating = data.get('rating')
@@ -197,7 +214,9 @@ def create_review(current_user):
         return jsonify({'message': f'Error creating review: {str(e)}'}), 500
 
 @user_bp.route('/users', methods=['GET'])
-def get_users():
+@token_required
+@admin_required
+def get_users(current_user):
     try:
         users = User.query.all()
         return jsonify([user.to_dict() for user in users]), 200
@@ -205,9 +224,13 @@ def get_users():
         return jsonify({'message': f'Error fetching users: {str(e)}'}), 500
 
 @user_bp.route('/users', methods=['POST'])
-def create_user():
+@token_required
+@admin_required
+def create_user(current_user):
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'message': 'JSON object required'}), 400
         
         if not data.get('username') or not data.get('email'):
             return jsonify({'message': 'Username and email are required'}), 400
@@ -228,7 +251,7 @@ def create_user():
         if data.get('password'):
             user.set_password(data['password'])
         else:
-            user.set_password('defaultpassword123')  # Senha padrão
+            return jsonify({'message': 'Password is required'}), 400
         
         db.session.add(user)
         db.session.commit()
@@ -243,7 +266,9 @@ def create_user():
         return jsonify({'message': f'Error creating user: {str(e)}'}), 500
 
 @user_bp.route('/users/<int:user_id>', methods=['GET'])
-def get_user(user_id):
+@token_required
+@admin_required
+def get_user(current_user, user_id):
     try:
         user = User.query.get_or_404(user_id)
         return jsonify(user.to_dict()), 200
@@ -251,10 +276,14 @@ def get_user(user_id):
         return jsonify({'message': f'Error fetching user: {str(e)}'}), 500
 
 @user_bp.route('/users/<int:user_id>', methods=['PUT'])
-def update_user(user_id):
+@token_required
+@admin_required
+def update_user(current_user, user_id):
     try:
         user = User.query.get_or_404(user_id)
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'message': 'JSON object required'}), 400
         
         user.username = data.get('username', user.username)
         user.email = data.get('email', user.email)
@@ -267,7 +296,9 @@ def update_user(user_id):
         return jsonify({'message': f'Error updating user: {str(e)}'}), 500
 
 @user_bp.route('/users/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
+@token_required
+@admin_required
+def delete_user(current_user, user_id):
     try:
         user = User.query.get_or_404(user_id)
         db.session.delete(user)
